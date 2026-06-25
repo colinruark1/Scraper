@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PA Real-Estate Acquisition Prospector</title>
+  <style>
+    :root { --bg:#0f1117; --card:#1a1d27; --line:#2a2e3c; --txt:#e6e8ef;
+            --mut:#9aa0b4; --accent:#5b8cff; --good:#3ecf8e; }
+    * { box-sizing:border-box; }
+    body { margin:0; font:15px/1.5 system-ui,Segoe UI,Roboto,sans-serif;
+           background:var(--bg); color:var(--txt); }
+    header { padding:24px 32px; border-bottom:1px solid var(--line); }
+    h1 { margin:0 0 4px; font-size:20px; }
+    .sub { color:var(--mut); font-size:13px; }
+    .controls { display:flex; gap:12px; align-items:center; flex-wrap:wrap;
+                padding:16px 32px; }
+    input[type=text] { background:var(--card); border:1px solid var(--line);
+        color:var(--txt); padding:9px 12px; border-radius:8px; min-width:240px; }
+    label { color:var(--mut); font-size:14px; display:flex; gap:6px;
+            align-items:center; cursor:pointer; }
+    .count { color:var(--mut); font-size:13px; margin-left:auto; }
+    table { width:calc(100% - 64px); margin:0 32px 40px; border-collapse:collapse; }
+    th,td { text-align:left; padding:11px 12px; border-bottom:1px solid var(--line);
+            vertical-align:top; }
+    th { color:var(--mut); font-weight:600; font-size:12px; text-transform:uppercase;
+         letter-spacing:.04em; }
+    .score { font-weight:700; font-size:16px; }
+    .bar { height:6px; background:var(--line); border-radius:3px; overflow:hidden;
+           margin-top:4px; width:120px; }
+    .bar > i { display:block; height:100%; background:var(--accent); }
+    .tag { display:inline-block; font-size:11px; padding:2px 7px; border-radius:99px;
+           background:rgba(62,207,142,.15); color:var(--good); border:1px solid rgba(62,207,142,.4); }
+    .muted { color:var(--mut); font-size:13px; }
+    a { color:var(--accent); text-decoration:none; }
+    a:hover { text-decoration:underline; }
+    .bd { font-size:11px; color:var(--mut); white-space:nowrap; }
+    .empty { padding:60px 32px; color:var(--mut); }
+    code { background:var(--card); padding:2px 6px; border-radius:5px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>PA Real-Estate Acquisition Prospector</h1>
+    <div class="sub">Firms ranked by a loyalty &amp; passion score built from reviews,
+      tenant language, longevity, and 2&ndash;3 bedroom focus.</div>
+  </header>
+
+  <div class="controls">
+    <input id="q" type="text" placeholder="Filter by name or address&hellip;" />
+    <label><input id="bed" type="checkbox" /> Only firms serving 2&ndash;3BR</label>
+    <span class="count" id="count"></span>
+  </div>
+
+  <table id="tbl">
+    <thead>
+      <tr>
+        <th>#</th><th>Loyalty score</th><th>Firm</th><th>Rating</th>
+        <th>Reviews</th><th>Signal breakdown</th><th>Contact</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <div class="empty" id="empty" style="display:none">
+    No results yet. Run <code>python run.py</code> first to populate the database.
+  </div>
+
+  <script>
+    const rows = document.getElementById('rows');
+    const empty = document.getElementById('empty');
+    const count = document.getElementById('count');
+    const q = document.getElementById('q');
+    const bed = document.getElementById('bed');
+
+    function bd(b){
+      const parts = [
+        ['Reviews', b.reviews_ratings], ['Loyalty lang.', b.tenant_language],
+        ['Longevity', b.longevity], ['2-3BR', b.bedroom_focus],
+      ];
+      return parts.map(([k,v])=>`${k}: ${(v*100||0).toFixed(0)}`).join(' &middot; ');
+    }
+
+    async function load(){
+      const params = new URLSearchParams();
+      if (q.value.trim()) params.set('q', q.value.trim());
+      if (bed.checked) params.set('bedroom_only','1');
+      const data = await (await fetch('/api/firms?'+params)).json();
+      rows.innerHTML = '';
+      empty.style.display = data.length ? 'none' : 'block';
+      count.textContent = data.length + ' firm' + (data.length===1?'':'s');
+      data.forEach((f,i)=>{
+        const tr = document.createElement('tr');
+        const site = f.website ? `<a href="${f.website}" target="_blank" rel="noopener">website</a>` : '';
+        const contact = [f.phone, site, f.address].filter(Boolean).join('<br>');
+        tr.innerHTML = `
+          <td class="muted">${i+1}</td>
+          <td><span class="score">${f.loyalty_score.toFixed(1)}</span>
+              <div class="bar"><i style="width:${Math.min(100,f.loyalty_score)}%"></i></div></td>
+          <td><strong>${f.name}</strong> ${f.bedroom_match?'<span class="tag">2-3BR</span>':''}
+              <div class="muted">${f.source}</div></td>
+          <td>${f.rating?('★ '+f.rating):'<span class="muted">—</span>'}</td>
+          <td>${f.review_count||0}</td>
+          <td class="bd">${bd(f.breakdown||{})}</td>
+          <td class="muted">${contact||'—'}</td>`;
+        rows.appendChild(tr);
+      });
+    }
+    q.addEventListener('input', () => { clearTimeout(window._t); window._t=setTimeout(load,200); });
+    bed.addEventListener('change', load);
+    load();
+  </script>
+</body>
+</html>

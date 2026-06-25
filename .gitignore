@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+prospects.db
+prospects.csv
+data/listings.csv
