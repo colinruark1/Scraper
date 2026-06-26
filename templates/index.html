@@ -3,111 +3,189 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PA Real-Estate Acquisition Prospector</title>
+  <title>PA Real-Estate Prospector</title>
   <style>
     :root { --bg:#0f1117; --card:#1a1d27; --line:#2a2e3c; --txt:#e6e8ef;
-            --mut:#9aa0b4; --accent:#5b8cff; --good:#3ecf8e; }
+            --mut:#9aa0b4; --accent:#5b8cff; --good:#3ecf8e; --warn:#ffb454; }
     * { box-sizing:border-box; }
     body { margin:0; font:15px/1.5 system-ui,Segoe UI,Roboto,sans-serif;
            background:var(--bg); color:var(--txt); }
-    header { padding:24px 32px; border-bottom:1px solid var(--line); }
+    header { padding:24px 32px 0; }
     h1 { margin:0 0 4px; font-size:20px; }
     .sub { color:var(--mut); font-size:13px; }
-    .controls { display:flex; gap:12px; align-items:center; flex-wrap:wrap;
-                padding:16px 32px; }
+    .tabs { display:flex; gap:4px; padding:16px 32px 0; border-bottom:1px solid var(--line); }
+    .tab { padding:9px 16px; cursor:pointer; color:var(--mut); border-bottom:2px solid transparent; }
+    .tab.active { color:var(--txt); border-bottom-color:var(--accent); }
+    .controls { display:flex; gap:12px; align-items:center; flex-wrap:wrap; padding:16px 32px; }
     input[type=text] { background:var(--card); border:1px solid var(--line);
         color:var(--txt); padding:9px 12px; border-radius:8px; min-width:240px; }
-    label { color:var(--mut); font-size:14px; display:flex; gap:6px;
-            align-items:center; cursor:pointer; }
+    label { color:var(--mut); font-size:14px; display:flex; gap:6px; align-items:center; cursor:pointer; }
     .count { color:var(--mut); font-size:13px; margin-left:auto; }
     table { width:calc(100% - 64px); margin:0 32px 40px; border-collapse:collapse; }
-    th,td { text-align:left; padding:11px 12px; border-bottom:1px solid var(--line);
-            vertical-align:top; }
-    th { color:var(--mut); font-weight:600; font-size:12px; text-transform:uppercase;
-         letter-spacing:.04em; }
+    th,td { text-align:left; padding:11px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+    th { color:var(--mut); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
     .score { font-weight:700; font-size:16px; }
-    .bar { height:6px; background:var(--line); border-radius:3px; overflow:hidden;
-           margin-top:4px; width:120px; }
+    .bar { height:6px; background:var(--line); border-radius:3px; overflow:hidden; margin-top:4px; width:110px; }
     .bar > i { display:block; height:100%; background:var(--accent); }
     .tag { display:inline-block; font-size:11px; padding:2px 7px; border-radius:99px;
            background:rgba(62,207,142,.15); color:var(--good); border:1px solid rgba(62,207,142,.4); }
+    .tag.warn { background:rgba(255,180,84,.12); color:var(--warn); border-color:rgba(255,180,84,.4); }
     .muted { color:var(--mut); font-size:13px; }
-    a { color:var(--accent); text-decoration:none; }
-    a:hover { text-decoration:underline; }
+    .pos { color:var(--good); } .neg { color:var(--warn); }
+    a { color:var(--accent); text-decoration:none; } a:hover { text-decoration:underline; }
     .bd { font-size:11px; color:var(--mut); white-space:nowrap; }
     .empty { padding:60px 32px; color:var(--mut); }
     code { background:var(--card); padding:2px 6px; border-radius:5px; }
+    .hidden { display:none; }
+    .num { font-variant-numeric:tabular-nums; }
   </style>
 </head>
 <body>
   <header>
-    <h1>PA Real-Estate Acquisition Prospector</h1>
-    <div class="sub">Firms ranked by a loyalty &amp; passion score built from reviews,
-      tenant language, longevity, and 2&ndash;3 bedroom focus.</div>
+    <h1>PA Real-Estate Prospector</h1>
+    <div class="sub">Trustworthy firms &amp; high-value investment opportunities for 2&ndash;3 bedroom apartments.</div>
   </header>
 
-  <div class="controls">
-    <input id="q" type="text" placeholder="Filter by name or address&hellip;" />
-    <label><input id="bed" type="checkbox" /> Only firms serving 2&ndash;3BR</label>
-    <span class="count" id="count"></span>
+  <div class="tabs">
+    <div class="tab active" data-view="firms">Loyal Firms</div>
+    <div class="tab" data-view="opps">Opportunities</div>
+    <div class="tab" data-view="market">Market Analysis</div>
   </div>
 
-  <table id="tbl">
-    <thead>
-      <tr>
-        <th>#</th><th>Loyalty score</th><th>Firm</th><th>Rating</th>
-        <th>Reviews</th><th>Signal breakdown</th><th>Contact</th>
-      </tr>
-    </thead>
-    <tbody id="rows"></tbody>
-  </table>
-  <div class="empty" id="empty" style="display:none">
-    No results yet. Run <code>python run.py</code> first to populate the database.
-  </div>
+  <!-- ============ FIRMS ============ -->
+  <section id="firms">
+    <div class="controls">
+      <input id="f_q" type="text" placeholder="Filter by name or address&hellip;" />
+      <label><input id="f_bed" type="checkbox" /> Only firms serving 2&ndash;3BR</label>
+      <span class="count" id="f_count"></span>
+    </div>
+    <table>
+      <thead><tr><th>#</th><th>Loyalty</th><th>Firm</th><th>Rating</th><th>Reviews</th><th>Signal breakdown</th><th>Contact</th></tr></thead>
+      <tbody id="f_rows"></tbody>
+    </table>
+    <div class="empty hidden" id="f_empty">No firms yet. Run <code>python run.py</code>.</div>
+  </section>
+
+  <!-- ============ OPPORTUNITIES ============ -->
+  <section id="opps" class="hidden">
+    <div class="controls">
+      <input id="o_q" type="text" placeholder="Filter by address, city, zip, firm&hellip;" />
+      <label><input id="o_bed" type="checkbox" /> Only 2&ndash;3BR</label>
+      <label><input id="o_min" type="checkbox" /> Score &ge; 50</label>
+      <span class="count" id="o_count"></span>
+    </div>
+    <table>
+      <thead><tr><th>#</th><th>Opportunity</th><th>Property</th><th>Price</th><th>$/sqft</th>
+        <th>Cap rate</th><th>Yield</th><th>vs market</th><th>DOM</th><th>Signals</th></tr></thead>
+      <tbody id="o_rows"></tbody>
+    </table>
+    <div class="empty hidden" id="o_empty">No property data yet. Drop a <code>data/properties.csv</code> (see <code>data/properties.sample.csv</code>) and run <code>python run.py</code>.</div>
+  </section>
+
+  <!-- ============ MARKET ============ -->
+  <section id="market" class="hidden">
+    <div class="controls"><span class="count" id="m_count"></span></div>
+    <table>
+      <thead><tr><th>Area (zip)</th><th>Listings</th><th>Median price</th><th>Median $/sqft</th>
+        <th>Median DOM</th><th>Median yield</th><th>Avg price drop</th></tr></thead>
+      <tbody id="m_rows"></tbody>
+    </table>
+    <div class="empty hidden" id="m_empty">No market data yet.</div>
+  </section>
 
   <script>
-    const rows = document.getElementById('rows');
-    const empty = document.getElementById('empty');
-    const count = document.getElementById('count');
-    const q = document.getElementById('q');
-    const bed = document.getElementById('bed');
+    const $ = id => document.getElementById(id);
+    const money = n => n ? '$' + Number(n).toLocaleString(undefined,{maximumFractionDigits:0}) : '—';
+    const pct = n => (n===null||n===undefined) ? '—' : Number(n).toFixed(1) + '%';
 
-    function bd(b){
-      const parts = [
-        ['Reviews', b.reviews_ratings], ['Loyalty lang.', b.tenant_language],
-        ['Longevity', b.longevity], ['2-3BR', b.bedroom_focus],
-      ];
-      return parts.map(([k,v])=>`${k}: ${(v*100||0).toFixed(0)}`).join(' &middot; ');
+    // ---- tab switching ----
+    document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      ['firms','opps','market'].forEach(v => $(v).classList.toggle('hidden', v !== t.dataset.view));
+      if (t.dataset.view === 'opps') loadOpps();
+      if (t.dataset.view === 'market') loadMarket();
+    }));
+
+    // ---- firms ----
+    function fbd(b){
+      return [['Reviews',b.reviews_ratings],['Loyalty lang.',b.tenant_language],
+        ['Longevity',b.longevity],['2-3BR',b.bedroom_focus]]
+        .map(([k,v])=>`${k}: ${(v*100||0).toFixed(0)}`).join(' · ');
     }
-
-    async function load(){
-      const params = new URLSearchParams();
-      if (q.value.trim()) params.set('q', q.value.trim());
-      if (bed.checked) params.set('bedroom_only','1');
-      const data = await (await fetch('/api/firms?'+params)).json();
-      rows.innerHTML = '';
-      empty.style.display = data.length ? 'none' : 'block';
-      count.textContent = data.length + ' firm' + (data.length===1?'':'s');
-      data.forEach((f,i)=>{
-        const tr = document.createElement('tr');
-        const site = f.website ? `<a href="${f.website}" target="_blank" rel="noopener">website</a>` : '';
+    async function loadFirms(){
+      const p = new URLSearchParams();
+      if ($('f_q').value.trim()) p.set('q', $('f_q').value.trim());
+      if ($('f_bed').checked) p.set('bedroom_only','1');
+      const data = await (await fetch('/api/firms?'+p)).json();
+      $('f_empty').classList.toggle('hidden', data.length>0);
+      $('f_count').textContent = data.length + ' firms';
+      $('f_rows').innerHTML = data.map((f,i)=>{
+        const site = f.website ? `<a href="${f.website}" target="_blank" rel="noopener">website</a>`:'';
         const contact = [f.phone, site, f.address].filter(Boolean).join('<br>');
-        tr.innerHTML = `
-          <td class="muted">${i+1}</td>
+        return `<tr><td class="muted">${i+1}</td>
           <td><span class="score">${f.loyalty_score.toFixed(1)}</span>
-              <div class="bar"><i style="width:${Math.min(100,f.loyalty_score)}%"></i></div></td>
+            <div class="bar"><i style="width:${Math.min(100,f.loyalty_score)}%"></i></div></td>
           <td><strong>${f.name}</strong> ${f.bedroom_match?'<span class="tag">2-3BR</span>':''}
-              <div class="muted">${f.source}</div></td>
+            <div class="muted">${f.source}</div></td>
           <td>${f.rating?('★ '+f.rating):'<span class="muted">—</span>'}</td>
-          <td>${f.review_count||0}</td>
-          <td class="bd">${bd(f.breakdown||{})}</td>
-          <td class="muted">${contact||'—'}</td>`;
-        rows.appendChild(tr);
-      });
+          <td>${f.review_count||0}</td><td class="bd">${fbd(f.breakdown||{})}</td>
+          <td class="muted">${contact||'—'}</td></tr>`;
+      }).join('');
     }
-    q.addEventListener('input', () => { clearTimeout(window._t); window._t=setTimeout(load,200); });
-    bed.addEventListener('change', load);
-    load();
+
+    // ---- opportunities ----
+    function obd(b){
+      return [['Value',b.value_vs_market],['Yield',b.yield],
+        ['Motivation',b.motivation],['2-3BR',b.bedroom_focus]]
+        .map(([k,v])=>`${k}: ${(v*100||0).toFixed(0)}`).join(' · ');
+    }
+    async function loadOpps(){
+      const p = new URLSearchParams();
+      if ($('o_q').value.trim()) p.set('q', $('o_q').value.trim());
+      if ($('o_bed').checked) p.set('bedroom_only','1');
+      if ($('o_min').checked) p.set('min_score','50');
+      const data = await (await fetch('/api/properties?'+p)).json();
+      $('o_empty').classList.toggle('hidden', data.length>0);
+      $('o_count').textContent = data.length + ' listings';
+      $('o_rows').innerHTML = data.map((p,i)=>{
+        const vm = p.value_vs_market;
+        const vmCell = vm===null ? '—' :
+          `<span class="${vm>=0?'pos':'neg'}">${vm>=0?'-'+vm.toFixed(0)+'% below':'+'+(-vm).toFixed(0)+'% above'}</span>`;
+        const drop = p.price_drop_pct ? ` <span class="tag warn">▼${p.price_drop_pct}%</span>`:'';
+        const addr = p.listing_url ? `<a href="${p.listing_url}" target="_blank" rel="noopener">${p.address||p.listing_id}</a>` : (p.address||p.listing_id);
+        return `<tr><td class="muted">${i+1}</td>
+          <td><span class="score">${p.opportunity_score.toFixed(1)}</span>
+            <div class="bar"><i style="width:${Math.min(100,p.opportunity_score)}%"></i></div></td>
+          <td><strong>${addr}</strong>${drop} ${p.bedroom_match?'<span class="tag">2-3BR</span>':''}
+            <div class="muted">${[p.city,p.zip].filter(Boolean).join(' ')} · ${p.owner_firm||''}</div></td>
+          <td class="num">${money(p.price)}</td>
+          <td class="num">${p.price_per_sqft?'$'+p.price_per_sqft:'—'}</td>
+          <td class="num">${p.cap_rate!==null?p.cap_rate+'%':'—'}</td>
+          <td class="num">${pct(p.gross_yield)}</td>
+          <td class="num">${vmCell}</td>
+          <td class="num">${p.days_on_market||'—'}</td>
+          <td class="bd">${obd(p.breakdown||{})}</td></tr>`;
+      }).join('');
+    }
+
+    // ---- market ----
+    async function loadMarket(){
+      const data = await (await fetch('/api/market')).json();
+      $('m_empty').classList.toggle('hidden', data.length>0);
+      $('m_count').textContent = data.length + ' market areas';
+      $('m_rows').innerHTML = data.map(m=>`<tr>
+        <td><strong>${m.area}</strong></td><td class="num">${m.n_listings}</td>
+        <td class="num">${money(m.median_price)}</td>
+        <td class="num">${m.median_ppsf?'$'+m.median_ppsf:'—'}</td>
+        <td class="num">${m.median_dom??'—'}</td>
+        <td class="num">${pct(m.median_yield)}</td>
+        <td class="num">${pct(m.avg_price_drop)}</td></tr>`).join('');
+    }
+
+    ['f_q','f_bed'].forEach(id=>$(id).addEventListener('input', ()=>{clearTimeout(window._tf);window._tf=setTimeout(loadFirms,200);}));
+    ['o_q','o_bed','o_min'].forEach(id=>$(id).addEventListener('input', ()=>{clearTimeout(window._to);window._to=setTimeout(loadOpps,200);}));
+    loadFirms();
   </script>
 </body>
 </html>

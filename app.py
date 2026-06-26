@@ -13,7 +13,7 @@ import os
 from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request
 
-from prospector.storage import load_firms
+from prospector.storage import load_firms, load_properties, load_market
 
 load_dotenv()
 app = Flask(__name__)
@@ -34,6 +34,27 @@ def api_firms():
         firms = [f for f in firms if q in (f["name"] or "").lower()
                  or q in (f["address"] or "").lower()]
     return jsonify(firms)
+
+
+@app.route("/api/properties")
+def api_properties():
+    bedroom_only = request.args.get("bedroom_only") == "1"
+    try:
+        min_score = float(request.args.get("min_score") or 0)
+    except ValueError:
+        min_score = 0.0
+    props = load_properties(DB_PATH, bedroom_only=bedroom_only, min_score=min_score)
+    q = (request.args.get("q") or "").lower().strip()
+    if q:
+        props = [p for p in props if q in (p["address"] or "").lower()
+                 or q in (p["city"] or "").lower() or q in (p["zip"] or "").lower()
+                 or q in (p["owner_firm"] or "").lower()]
+    return jsonify(props)
+
+
+@app.route("/api/market")
+def api_market():
+    return jsonify(load_market(DB_PATH))
 
 
 if __name__ == "__main__":

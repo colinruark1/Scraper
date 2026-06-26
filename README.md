@@ -47,15 +47,38 @@ Get free API keys:
 `name,address,phone,website,bedrooms,source_id` — see
 [`data/listings.sample.csv`](data/listings.sample.csv).
 
+## Market analysis & investment opportunities
+
+Beyond *who* to buy, the tool scores *which properties* are high-value buys —
+the "Market Analysis", "Property Data", and "Investment Information" the
+scraping guides describe.
+
+Drop a listings export at `data/properties.csv` (columns:
+`listing_id,address,city,state,zip,price,bedrooms,bathrooms,sqft,days_on_market,monthly_rent,property_type,listing_url,owner_firm,price_history`
+— see [`data/properties.sample.csv`](data/properties.sample.csv)). Same ToS-safe
+rule: the guides recommend Zillow/Redfin/Realtor (all scrape-prohibited) and
+point licensed pros at **MLS/RETS feeds** — export from one of those, a licensed
+data provider, or your own records.
+
+From that the tool computes:
+
+- **Market stats by zip** ([`market.py`](prospector/market.py)) — median price,
+  median $/sqft, median days-on-market, median rental yield, avg price drop.
+- **Investment metrics per listing** ([`investment.py`](prospector/investment.py)) —
+  cap rate, gross yield, value vs. area comps ($/sqft), price-drop %, and an
+  **opportunity score (0–100)** rewarding undervalued + high-yield + motivated
+  sellers + 2–3BR matches. Tune `WEIGHTS` to your buy box.
+
 ## Run
 
 ```bash
-python run.py                       # sweeps SEARCH_AREAS from .env
-python run.py "Harrisburg PA" "Erie PA"   # or pick specific areas
+python run.py                       # firms (sweeps SEARCH_AREAS) + properties
+python run.py "Harrisburg PA" "Erie PA"   # firm search in specific areas
+python run.py --skip-firms          # only re-run market/investment analysis
 ```
 
-This writes `prospects.db` and `prospects.csv` (open in Excel) and prints the
-top 10.
+Writes `prospects.db` + `prospects.csv` (firms) and prints the top loyal firms
+**and** the top investment opportunities.
 
 ## Dashboard
 
@@ -63,23 +86,30 @@ top 10.
 python app.py        # open http://127.0.0.1:5000
 ```
 
-Sort by score, filter to firms serving 2–3BR units, search by name/area, and
-inspect each firm's signal breakdown.
+Three tabs:
+- **Loyal Firms** — ranked acquisition targets with signal breakdown.
+- **Opportunities** — ranked listings with cap rate, yield, vs-market, DOM, and
+  filters for 2–3BR / score ≥ 50.
+- **Market Analysis** — per-zip price, $/sqft, DOM, yield, and price-drop stats.
 
 ## Project layout
 
 ```
-run.py                     CLI: scrape + score -> prospects.db / prospects.csv
-app.py                     Flask dashboard
+run.py                     CLI: firms + properties -> prospects.db / prospects.csv
+app.py                     Flask dashboard (firms / opportunities / market)
 prospector/
-  models.py                Firm / Review data model + cross-source merge
-  scoring.py               loyalty/passion scoring (tune weights here)
-  pipeline.py              collect -> de-dup -> score -> store
-  storage.py               SQLite read/write
+  models.py                Firm, Property, MarketStats data models
+  scoring.py               firm loyalty/passion scoring (tune weights)
+  market.py                per-zip market analysis aggregation
+  investment.py            cap rate / yield / opportunity scoring (tune weights)
+  pipeline.py              firms: collect -> de-dup -> score -> store
+  property_pipeline.py     properties: load -> market stats -> score -> store
+  storage.py               SQLite read/write (firms, properties, market)
   sources/
-    google_places.py       Google Places API source
-    yelp.py                Yelp Fusion API source
-    listings.py            ToS-safe CSV ingest (your Zillow/Apartments data)
+    google_places.py       Google Places API source (firms)
+    yelp.py                Yelp Fusion API source (firms)
+    listings.py            ToS-safe firm CSV ingest
+    properties.py          ToS-safe listing/property CSV ingest
 templates/index.html       dashboard UI
 ```
 
